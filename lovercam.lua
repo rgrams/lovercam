@@ -42,6 +42,30 @@ local function get_zoom_for_new_window(z, scale_mode, old_x, old_y, new_x, new_y
 		return z * new_x / old_x
 	elseif scale_mode == "fixed height" then
 		return z * new_y / old_y
+	else
+		error("Lovercam - get_zoom_for_new_window() - invalid scale mode: " .. tostring(scale_mode))
+	end
+end
+
+local function get_inital_zoom(zoom_area, win_x, win_y, scale_mode)
+	-- Want initial zoom to respect user settings.
+	-- If `zoom_area` is an area, we want to use
+	-- that even if "expand view" mode is used.
+	-- Use "fixed area" mode to get a nice fit
+	-- regardless of proportion differences.
+	scale_mode = scale_mode == "expand view" and "fixed area" or scale_mode
+	zoom_area = zoom_area or 1
+	local z = 1
+	if type(zoom_area) == "number" then
+		return zoom_area
+	elseif zoom_area.x and zoom_area.y then -- x, y vector
+		return get_zoom_for_new_window(z, scale_mode, zoom_area.x, zoom_area.y, win_x, win_y)
+	elseif zoom_area.w and zoom_area.h then -- w, h table
+		return get_zoom_for_new_window(z, scale_mode, zoom_area.w, zoom_area.h, win_x, win_y)
+	elseif zoom_area[1] and zoom_area[2] then -- 1, 2 list
+		return get_zoom_for_new_window(z, scale_mode, zoom_area[1], zoom_area[2], win_x, win_y)
+	else
+		error("Lovercam - get_initial_zoom - invalid zoom or area: " .. tostring(zoom_area))
 	end
 end
 
@@ -223,19 +247,23 @@ local function unfollow(self, obj)
 	end
 end
 
-function M.new(pos, rot, zoom, inactive, scale_mode)
+function M.new(pos, rot, zoom_or_area, inactive, scale_mode)
+	local win_x, win_y = love.graphics.getDimensions()
+	scale_mode = scale_mode or "fixed area"
+	local zoom = get_inital_zoom(zoom_or_area, win_x, win_y, scale_mode)
 	local n = {
 		-- User Settings:
 		active = not inactive,
 		pos = vec2(pos.x, pos.y),
 		rot = rot or 0,
-		zoom = zoom or 1,
-		scale_mode = scale_mode or "fixed area",
+		zoom = zoom,
+		scale_mode = scale_mode,
 
 		-- functions, state properties, etc.
 		apply_transform = apply_transform,
 		reset_transform = reset_transform,
-		win = vec2(love.graphics.getDimensions()),
+		win = vec2(win_x, win_y),
+		half_win = vec2(win_x/2, win_y/2),
 		win_resized = win_resized,
 		screen_to_world = screen_to_world,
 		activate = activate,
@@ -255,7 +283,6 @@ function M.new(pos, rot, zoom, inactive, scale_mode)
 		unfollow = unfollow,
 		follow_lerp_speed = 3
 	}
-	n.half_win = n.win / 2
 	if n.active then M.cur_cam = n end
 	table.insert(cameras, n)
 	return n

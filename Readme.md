@@ -8,6 +8,7 @@ A camera library for Löve. (A work in progress)
 	* Fixed Area
 	* Fixed Width
 	* Fixed Height
+* Initial View Area
 * Multiple cameras
 * Zoom
 * Shake
@@ -17,7 +18,6 @@ A camera library for Löve. (A work in progress)
 
 ## To Do:
 * Fixed Aspect Ratio (black bars)
-* Initial View Area
 * Camera Bounds
 * Weighted Multi-Following
 * Follow Deadzone
@@ -29,8 +29,8 @@ A camera library for Löve. (A work in progress)
 
 ## Basic Setup
 
-### M.new(pos, rot, zoom, inactive, scale_mode)
-Creates a new camera object. The module stores the latest active camera in `M.cur_cam`. The `scale_mode` must be one of the following strings: "expand view", "fixed area", "fixed width", or "fixed height".
+### M.new(pos, rot, zoom_or_area, inactive, scale_mode)
+Creates a new camera object. The module stores the latest active camera in `M.cur_cam`. The `scale_mode` must be one of the following strings: "expand view", "fixed area", "fixed width", or "fixed height". `zoom_or_area` can either be a zoom value (<kbd>number</kbd>) or a table or vector with the dimensions of the desired view area. If it's not a number, Lovercam will look for "x" and "y" or "w" and "h", or [1] and [2] fields.
 
 Use `apply_transform()` and `reset_transform()` to push and pop a camera's view transform from Löve's rendering transform stack. Call `M.window_resized()` in `love.resize()` so your cameras zoom correctly when the window changes. Make sure to call `M.update()` in `love.update()` (or update cameras one-by-one if you want), if you are doing any shake, recoil, or following.
 
