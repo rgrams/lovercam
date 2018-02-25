@@ -32,17 +32,21 @@ A camera library for Löve. (A work in progress)
 ### M.new(pos, rot, zoom, inactive, scale_mode)
 Creates a new camera object. The module stores the latest active camera in `M.cur_cam`. The `scale_mode` must be one of the following strings: "expand view", "fixed area", "fixed width", or "fixed height".
 
+Use `apply_transform()` and `reset_transform()` to push and pop a camera's view transform from Löve's rendering transform stack. Call `M.window_resized()` in `love.resize()` so your cameras zoom correctly when the window changes. Make sure to call `M.update()` in `love.update()` (or update cameras one-by-one if you want), if you are doing any shake, recoil, or following.
+
 ## Update Functions
 
 ### M.window_resized(w, h)
 Updates all cameras for the new window size. This may alter the zoom of your cameras, depending on their scale mode. ("expand view" mode cameras keep the same zoom.)
+
 ### M.update(dt)
 Runs the update functions of all cameras. This will step forward all time-related features: following, shake, & recoil, and enforce camera bounds. For finer control you can use M.update_current() to only update the currently active camera, or directly call the update function of any camera you have a reference to (i.e. my_camera:update(dt)).
+
 ### M.update_current(dt)
 Runs the update function of the currently active camera only.
 
 ## Shortcut to Current Camera
-All of the following camera functions, except `update` and `activate`, can be used as module functions which, will call them on the current active camera. This way, you generally don't need to keep track of camera object references and which one is active, except if you want to switch between multiple cameras or only update certain ones, etc.
+All of the following camera functions, except `update` and `activate`, can be used as module functions, which will call them on the current active camera. This way, you generally don't need to keep track of camera object references and which one is active, except if you want to switch between multiple cameras or only update certain ones, etc.
 
 ## Camera Functions
 
@@ -81,3 +85,25 @@ Tells this camera to smoothly follow `obj`. This requires that `obj` has a prope
 
 ### cam:unfollow(obj)
 Removes `obj` from the camera's list of followed objects. If no object is given, it will unfollow anything and everything it is currently following.
+
+## Camera Properties
+Properties of the camera object that you may want to get or set.
+
+#### pos <kbd>vector2</kbd>
+The camera's position. Set `pos.x` and `pos.y` to move the camera around.
+
+#### rot <kbd>number</kbd>
+The camera's rotation, in radians.
+
+#### zoom <kbd>number</kbd>
+The camera's zoom. Set it higher to zoom in, or lower to zoom out.
+
+#### scale_mode <kbd>string / enum</kbd>
+How the camera adapts when the window size is changed.
+* __"expand view"__ - How Löve works normally---zoom doesn't change---if the window is made larger a larger area is rendered, and vice versa.
+* __"fixed area"__ - Lovercam's default (because it's the best). The camera zooms in or out to show the same _area_ of game world, regardless of window size and proportion.
+* __"fixed width"__ - The camera zooms to show the same horizontal amount of world. Vertical view space will be cropped or expanded depending on the window proportion.
+* __"fixed height"__ - The camera zooms to show the same vertical amount of space. The sides will be cropped or expanded depending on the window proportion.
+
+#### follow_lerp_speed <kbd>number</kbd>
+The camera's interpolation speed, used when following objects.
