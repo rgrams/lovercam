@@ -65,11 +65,11 @@ function M.update_current(dt)
 end
 
 -- convert these names into functions applied to the current camera
-local F = {	"apply_transform", "reset_transform", "deactivate", "pan",
+local F = {	"apply_transform", "reset_transform", "deactivate", "pan", "screen_to_world",
 	"zoom_in", "shake", "recoil", "stop_shaking", "follow", "unfollow" }
 
 for i, func in ipairs(F) do -- calling functions on the module passes the call to the current camera
-	M[func] = function(...) M.cur_cam[func](M.cur_cam, ...) end
+	M[func] = function(...) return M.cur_cam[func](M.cur_cam, ...) end
 end
 
 --##############################  Utilities & Misc.  ##############################
