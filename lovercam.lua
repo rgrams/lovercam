@@ -84,6 +84,11 @@ local falloff_funcs = {
 	quadratic = function(x) return x*x end
 }
 
+local function lerpdt(ax, ay, bx, by, s, dt) -- vector lerp with x, y over dt
+	local k = 1 - 0.5^(dt*s)
+	return ax + (bx - ax)*k, ay + (by - ay)*k
+end
+
 --##############################  Camera Object Functions  ##############################
 
 local function update(self, dt)
@@ -95,9 +100,8 @@ local function update(self, dt)
 			fx = fx + obj.pos.x;  fy = fy + obj.pos.y
 		end
 		fx = fx / self.follow_count;  fy = fy / self.follow_count
+		fx, fy = lerpdt(self.pos.x, self.pos.y, fx, fy, self.follow_lerp_speed, dt)
 		self.pos.x, self.pos.y = fx, fy
-
-		-- TODO - follow lerp
 
 		-- TODO - follow weights
 		-- TODO - follow deadzone
