@@ -31,26 +31,23 @@ local TWO_PI = math.pi*2
 
 --##############################  Module Functions ##############################
 
-local function get_zoom_for_new_window(self, old_x, old_y, new_x, new_y)
-	-- unlike Rendercam, with Love I just need a zoom value
-	local z = self.zoom
-
-	if self.scale_mode == "expand view" then
+local function get_zoom_for_new_window(z, scale_mode, old_x, old_y, new_x, new_y)
+	if scale_mode == "expand view" then
 		return z
-	elseif self.scale_mode == "fixed area" then
+	elseif scale_mode == "fixed area" then
 		local new_a = new_x * new_y
 		local old_a = old_x * old_y
 		return z * sqrt(new_a / old_a) -- zoom is the scale on both axes, hence the square root
-	elseif self.scale_mode == "fixed width" then
+	elseif scale_mode == "fixed width" then
 		return z * new_x / old_x
-	elseif self.scale_mode == "fixed height" then
+	elseif scale_mode == "fixed height" then
 		return z * new_y / old_y
 	end
 end
 
 function M.window_resized(w, h) -- call once on module and it updates all cameras
 	for i, self in ipairs(cameras) do
-		self.zoom = get_zoom_for_new_window(self, self.win.x, self.win.y, w, h)
+		self.zoom = get_zoom_for_new_window(self.zoom, self.scale_mode, self.win.x, self.win.y, w, h)
 		self.win.x = w;  self.win.y = h
 		self.half_win.x = self.win.x / 2;  self.half_win.y = self.win.y / 2
 	end
