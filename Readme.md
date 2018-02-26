@@ -18,11 +18,11 @@ A camera library for Löve. (A work in progress)
 * Weighted Multi-Following
 * Screen-to-World transform
 * World-to-Screen transform
+* Camera Bounds
 
 ## To Do:
-* Camera Bounds
 * Follow Deadzone
-* Split-Screen Support ((?) use fixed aspect + an offset?)
+* Split-Screen Support - or any custom scissor
 * Camera Lead
 * Zoom to Point
 * Rotational Shake
@@ -106,6 +106,15 @@ Tells this camera to smoothly follow `obj`. This requires that `obj` has a prope
 
 ### cam:unfollow(obj)
 Removes `obj` from the camera's list of followed objects. If no object is given, it will unfollow anything and everything it is currently following.
+
+### cam:set_bounds(lt, rt, top, bot)
+Sets limits on how far the edge of the camera view can travel, in world coordinates. Call this with no arguments to remove the bounds. If the bounds are smaller than the camera view in either direction then the camera's position will be locked to the center of the bounds area in that axis.
+
+_PARAMETERS_
+* __lt__ <kbd>number</kbd> - The x position of the left edge of the bounds.
+* __rt__ <kbd>number</kbd> - The x position of the right edge of the bounds.
+* __top__ <kbd>number</kbd> - The y position of the top edge of the bounds.
+* __bot__ <kbd>number</kbd> - The y position of the bottom edge of the bounds.
 
 ## Camera Properties
 Properties of the camera object that you may want to get or set.

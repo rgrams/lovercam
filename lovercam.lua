@@ -23,6 +23,9 @@ M.default_shake_falloff = "linear"
 M.default_recoil_falloff = "quadratic"
 
 -- localize stuff
+local min = math.min
+local max = math.max
+local abs = math.abs
 local sin = math.sin
 local cos = math.cos
 local sqrt = math.sqrt
@@ -30,6 +33,14 @@ local rand = love.math.random
 local TWO_PI = math.pi*2
 
 --##############################  Private Functions  ##############################
+
+local function sign(x)
+	return x >= 0 and 1 or -1
+end
+
+local function max_abs(a, b)
+	return abs(a) > abs(b) and a or b
+end
 
 local function rotate(x, y, a) -- vector rotate with x, y
 	local ax, ay = cos(a), sin(a)
@@ -120,7 +131,7 @@ end
 
 -- convert these names into functions applied to the current camera
 local F = {	"apply_transform", "reset_transform", "deactivate", "pan", "screen_to_world",
-	"world_to_screen", "zoom_in", "shake", "recoil", "stop_shaking", "follow", "unfollow" }
+	"world_to_screen", "zoom_in", "shake", "recoil", "stop_shaking", "follow", "unfollow", "set_bounds" }
 
 for i, func in ipairs(F) do -- calling functions on the module passes the call to the current camera
 	M[func] = function(...) return M.cur_cam[func](M.cur_cam, ...) end
@@ -145,7 +156,7 @@ local function update(self, dt)
 		-- TODO - follow deadzone
 	end
 
-	-- TODO - enforce bounds
+	self:enforce_bounds()
 
 	-- update shakes & recoils
 	self.shake_x, self.shake_y = 0, 0
@@ -270,6 +281,64 @@ local function unfollow(self, obj)
 	end
 end
 
+local function set_bounds(self, lt, rt, top, bot)
+	if lt and rt and top and bot then
+		local b = {
+			lt=lt, rt=rt, top=top, bot=bot,
+			width=rt-lt, height=bot-top
+		}
+		b.center_x = lt + b.w/2
+		b.center_y = top + b.h/2
+		self.bounds = b
+	else
+		self.bounds = nil
+	end
+end
+
+local bounds_vec_table = { tl=vec2(), tr=vec2(), bl=vec2(), br=vec2() } -- save the GC some work
+
+local function enforce_bounds(self)
+	if self.bounds then
+		local bounds = self.bounds
+		local vp = self.vp
+		local c = bounds_vec_table -- corners
+		-- get viewport corner positions in world space
+		c.tl.x, c.tl.y = self:screen_to_world(vp.x, vp.y) -- top left
+		c.tr.x, c.tr.y = self:screen_to_world(vp.x + vp.w, vp.y) -- top right
+		c.bl.x, c.bl.y = self:screen_to_world(vp.x, vp.y + vp.h) -- bottom left
+		c.br.x, c.br.y = self:screen_to_world(vp.x + vp.w, vp.y + vp.h) -- bottom right
+
+		local w_view_w = max(c.tl.x, c.tr.x, c.bl.x, c.br.x) - min(c.tl.x, c.tr.x, c.bl.x, c.br.x)
+		local w_view_h = max(c.tl.y, c.tr.y, c.bl.y, c.br.y) - min(c.tl.y, c.tr.y, c.bl.y, c.br.y)
+		local set_x, set_y = true, true
+		if w_view_w > bounds.width then
+			self.pos.x = bounds.center_x
+			set_x = false
+		end
+		if w_view_h > bounds.height then
+			self.pos.y = bounds.center_y
+			set_y = false
+		end
+
+		if set_x or set_y then
+			local correct = vec2() -- total correction vec
+			for k, v in pairs(c) do
+				-- check if it's outside bounds
+				if set_x then
+					local x = v.x < bounds.lt and (v.x-bounds.lt) or v.x > bounds.rt and (v.x-bounds.rt) or 0
+					correct.x = sign(correct.x) == sign(x) and max_abs(correct.x, x) or correct.x + x
+				end
+				if set_y then
+					local y = v.y > bounds.bot and (v.y-bounds.bot) or v.y < bounds.top and (v.y-bounds.top) or 0
+					correct.y = sign(correct.y) == sign(y) and max_abs(correct.y, y) or correct.y + y
+				end
+			end
+			self.pos.x = self.pos.x - correct.x
+			self.pos.y = self.pos.y - correct.y
+		end
+	end
+end
+
 function M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
 	local win_x, win_y = love.graphics.getDimensions()
 	scale_mode = scale_mode or "fixed area"
@@ -306,7 +375,9 @@ function M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
 		follows = {},
 		follow_count = 0,
 		unfollow = unfollow,
-		follow_lerp_speed = 3
+		follow_lerp_speed = 3,
+		set_bounds = set_bounds,
+		enforce_bounds = enforce_bounds
 	}
 	-- Fixed aspect ratio - get viewport/scissor
 	local vp = {}
