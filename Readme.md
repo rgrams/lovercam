@@ -31,7 +31,7 @@ A camera library for Löve. (A work in progress)
 ## Constructor
 
 ### M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
-Creates a new camera object. The module stores the latest active camera in `M.cur_cam`. The `scale_mode` must be one of the following strings: "expand view", "fixed area", "fixed width", or "fixed height". `zoom_or_area` can either be a zoom value (a number) or a table or vector with the dimensions of the desired view area. If it's not a number, Lovercam will look for "x" and "y" or "w" and "h", or [1] and [2] fields.
+Creates a new camera object. If not `inactive`, the current camera (at M.cur_cam) will be set to this one.
 
 _PARAMETERS_
 * __pos__ <kbd>table | vector2</kbd> - _optional_ - Initial position of the camera. Must have `x` and `y` fields. Defaults to (0, 0).
@@ -42,8 +42,11 @@ _PARAMETERS_
 	* __"fixed area"__ - Lovercam's default (because it's the best). The camera zooms in or out to show the same _area_ of game world, regardless of window size and proportion.
 	* __"fixed width"__ - The camera zooms to show the same horizontal amount of world. The top and bottom will be cropped or expanded depending on the window proportion.
 	* __"fixed height"__ - The camera zooms to show the same vertical amount of space. The sides will be cropped or expanded depending on the window proportion.
-* __fixed_aspect_ratio__ <kbd>number</kbd> _optional_ - The aspect ratio that the viewport will be fixed to (if specified). If you pass in a value here, the camera will crop the area that it draws to as necessary maintain this aspect ratio. It will either crop the top and bottom, or left and right, depending on the aspect ratio and your window proportion. The cropping is applied and removed along with the camera's transform (with `apply_transform` and `reset_transform`). Defaults to `nil` (no aspect ratio enforced). 
+* __fixed_aspect_ratio__ <kbd>number</kbd> _optional_ - The aspect ratio that the viewport will be fixed to (if specified). If you pass in a value here, the camera will crop the area that it draws to as necessary maintain this aspect ratio. It will either crop the top and bottom, or left and right, depending on the aspect ratio and your window proportion. The cropping is applied and removed along with the camera's transform (with `apply_transform` and `reset_transform`). Defaults to `nil` (no aspect ratio enforced).
 * __inactive__ <kbd>bool</kbd> _optional_ - If the camera should be inactive when initialized. This just means the camera won't be set as the active camera. Defaults to `false` (i.e. active).
+
+_RETURNS_
+* __t__ <kbd>table</kbd> - The camera object table.
 
 ## Basic Usage
 
