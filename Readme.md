@@ -30,7 +30,7 @@ A camera library for Löve. (A work in progress)
 
 ## Constructor
 
-### M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
+### M.new([pos], [rot], [zoom_or_area], [scale_mode], [fixed_aspect_ratio], [inactive])
 Creates a new camera object. If not `inactive`, the current camera (at M.cur_cam) will be set to this one.
 
 _PARAMETERS_
@@ -57,19 +57,46 @@ Use `apply_transform()` and `reset_transform()` to push and pop a camera's view 
 ### M.window_resized(w, h)
 Updates all cameras for the new window size. This may alter the zoom of your cameras, depending on their scale mode. ("expand view" mode cameras keep the same zoom.)
 
+_PARAMETERS_
+* __w__ <kbd>number</kbd> - The new width of the window.
+* __h__ <kbd>number</kbd> - The new height of the window.
+
 ### M.update(dt)
 Runs the update functions of all cameras. This will step forward all time-related features: following, shake, & recoil, and enforce camera bounds. For finer control you can use M.update_current() to only update the currently active camera, or directly call the update function of any camera you have a reference to (i.e. my_camera:update(dt)).
+
+_PARAMETERS_
+* __dt__ <kbd>number</kbd> - Delta time for this frame
 
 ### M.update_current(dt)
 Runs the update function of the currently active camera only.
 
+_PARAMETERS_
+* __dt__ <kbd>number</kbd> - Delta time for this frame
+
+
 ## Shortcut to Current Camera
-All of the following camera functions, except `update` and `activate`, can be used as module functions, which will call them on the current active camera. This way, you generally don't need to keep track of camera object references and which one is active, except if you want to switch between multiple cameras or only update certain ones, etc.
+All of the following camera functions, except `update` and `activate`, can be used as module functions, which will call them on the current active camera. This way, you generally don't need to keep track of camera object references and which one is active, except if you want to switch between multiple cameras or only update certain ones, etc. For example:
+
+```lua
+local Camera = require "lib.lovercam"
+
+function love.draw()
+	Camera.apply_transform() -- apply the transform of the current camera
+	-- set an object's world position based on a stored mouse screen pos
+	my_obj.pos.x, my_obj.pos.y = Camera.screen_to_world(mouse_sx, mouse_sy)
+	my_obj:draw()
+	Camera.reset_transform() -- reset the transform of the current camera
+	-- draw GUI stuff
+end
+```
 
 ## Camera Functions
 
 ### cam:update(dt)
 Updates the camera follow, shake, recoil, and bounds.
+
+_PARAMETERS_
+* __dt__ <kbd>number</kbd> - Delta time for this frame
 
 ### cam:apply_transform()
 Adds this camera's view transform (position, rotation, and zoom) to Löve's render transform stack.
@@ -80,34 +107,77 @@ Resets to the last render transform (`love.graphics.pop()`)
 ### cam:activate()
 Activates/switches to this camera.
 
-### cam:screen_to_world(x, y, delta)
+### cam:screen_to_world(x, y, [delta])
 Transforms `x` and `y` from screen coordinates to world coordinates based on this camera's position, rotation, and zoom.
 
-### cam:world_to_screen(x, y, delta)
+_PARAMETERS_
+* __x__ <kbd>number</kbd> - The screen x coordinate to transform.
+* __y__ <kbd>number</kbd> - The screen y coordinate to transform.
+* __delta__ <kbd>bool</kbd> - _optional_ If the coordinates are for a _change_ in position (or size), rather than an absolute position. Defaults to `false`.
+
+_RETURNS_
+* __x__ <kbd>number</kbd> - The corresponding world x coordinate.
+* __y__ <kbd>number</kbd> - The corresponding world y coordinate.
+
+### cam:world_to_screen(x, y, [delta])
 Transform `x` and `x` from world coordinates to screen coordinates based on this camera's position, rotation, and zoom.
+
+_PARAMETERS_
+* __x__ <kbd>number</kbd> - The world x coordinate to transform.
+* __y__ <kbd>number</kbd> - The world y coordinate to transform.
+* __delta__ <kbd>bool</kbd> - _optional_ If the coordinates are for a _change_ in position (or size), rather than an absolute position. Defaults to `false`.
+
+_RETURNS_
+* __x__ <kbd>number</kbd> - The corresponding screen x coordinate.
+* __y__ <kbd>number</kbd> - The corresponding screen y coordinate.
 
 ### cam:pan(dx, dy)
 Moves this camera's position by `(dx, dy)`. This is just for convenience, you can also move the camera around by setting its `pos` property (`pos.x` and `pos.y`).
 
+_PARAMETERS_
+* __x__ <kbd>number</kbd> - The change in x to apply to the camera's position.
+* __y__ <kbd>number</kbd> - The change in y to apply to the camera's position.
+
 ### cam:zoom(z)
 A convenience function to zoom the camera in or out by a percentage. Just sets the camera's `zoom` property to `zoom * (1 + z)`.
 
-### cam:shake(dist, duration, falloff)
-Adds a shake to the camera. The shake will last for `duration` seconds, randomly offsetting the camera's position every frame by a maximum distance of +-`dist`. You can optionally set the shake falloff to "linear" or "quadratic" - it defaults to "linear".
+_PARAMETERS_
+* __z__ <kbd>number</kbd> - The percent of the current zoom value to add or subtract.
 
-### cam:recoil(vec, duration, falloff)
-Adds a recoil to the camera. This is sort of like a shake, only it just offsets the camera by the vector you specify--smoothly falling off to (0, 0) over `duration`. `falloff` can optionally be set to "linear" or "quadratic" (defaults to "quadratic").
+### cam:shake(dist, duration, [falloff])
+Adds a shake to the camera. The shake will last for `duration` seconds, randomly offsetting the camera's position every frame by a maximum distance of +/-`dist`. The shake effect will falloff to zero over its duration. By default it uses linear falloff. For each shake you can optionally specify the fallof function, as "linear" or "quadratic", or you can change the default by setting `M.default_shake_falloff`.
+
+_PARAMETERS_
+* __dist__ <kbd>number</kbd> - The "intensity" of the shake. The length of the maximum offset it may apply.
+* __duration__ <kbd>number</kbd> - How long the shake will last, in seconds.
+* __falloff__ <kbd>string</kbd> - _optional_ - The falloff type for the shake to use. Can be either "linear" or "quadratic". Defaults to "linear" (or `M.default_shake_falloff`).
+
+### cam:recoil(vec, duration, [falloff])
+Adds a recoil to the camera. This is sort of like a shake, only it just offsets the camera by the vector you specify--smoothly falling off to (0, 0) over `duration`. The falloff function for each recoil can optionally be set to "linear" or "quadratic" (defaults to "quadratic"), or you can change the default by setting `M.default_recoil_falloff`.
+
+_PARAMETERS_
+* __vec__ <kbd>table | vector</kbd> - The vector of the recoil. The initial offset it applies to the camera. Must have `x` and `y` fields.
+* __duration__ <kbd>number</kbd> - How long the recoil will last, in seconds.
+* __falloff__ <kbd>string</kbd> - _optional_ - The falloff type for the shake to use. Can be either "linear" or "quadratic". Defaults to "quadratic" (or `M.default_recoil_falloff`).
 
 ### cam:stop_shaking()
 Cancels all shakes and recoils on this camera.
 
-### cam:follow(obj, allowMultiFollow, weight)
-Tells this camera to smoothly follow `obj`. This requires that `obj` has a property `pos` with `x` and `y` elements. Set the camera's `follow_lerp_speed` property to adjust the smoothing speed. If `allowMultiFollow` is true then `obj` will be added to a list of objects that the camera is following---the camera's lerp target will be the average position of all objects on the list. The optional `weight` parameter (default=1) allows you to control how much each followed object influences the camera position. You might set it to, say, 1 for your character, and 0.5 for the mouse cursor for a top-down shooter. This only has an effect if the camera is following multiple objects. Call `cam:follow()` again with the same object to update the weight.
+### cam:follow(obj, [allowMultiFollow], [weight])
+Tells this camera to smoothly follow `obj`. This requires that `obj` has a property `pos` with `x` and `y` elements. Set the camera's `follow_lerp_speed` property to adjust the smoothing speed. If `allowMultiFollow` is true then `obj` will be added to a list of objects that the camera is following---the camera's lerp target will be the average position of all objects on the list. The optional `weight` parameter allows you to control how much each followed object influences the camera position. You might set it to, say, 1 for your character, and 0.5 for the mouse cursor for a top-down shooter. This only has an effect if the camera is following multiple objects. Call `cam:follow()` again with the same object to update the weight.
 
-### cam:unfollow(obj)
-Removes `obj` from the camera's list of followed objects. If no object is given, it will unfollow anything and everything it is currently following.
+_PARAMETERS_
+* __obj__ <kbd>table</kbd> - The object to follow. This must be a table with a property `pos` that has `x` and `y` elements.
+* __allowMultiFollow__ <kbd>bool</kbd> - _optional_ - Whether to add `obj` to the list of objects to follow, or to replace the list with only `obj`. Defaults to `false`.
+* __weight__ <kbd>number</kbd> - _optional_ - The averaging weight for this object. This only matters if the camera is following multiple objects. Higher numbers will make the camera follow this object more closely than the other objects, and vice versa. The actual number doesn't matter, only its value relative to the weights of the other objects this camera is following. Defaults to 1.
 
-### cam:set_bounds(lt, rt, top, bot)
+### cam:unfollow([obj])
+Removes `obj` from the camera's list of followed objects. If no object is given, the camera will unfollow anything and everything it is currently following.
+
+_PARAMETERS_
+* __obj__ <kbd>table</kbd> - _optional_ - The object to stop following. Leave out this argument to unfollow everything.
+
+### cam:set_bounds([lt, rt, top, bot])
 Sets limits on how far the edge of the camera view can travel, in world coordinates. Call this with no arguments to remove the bounds. If the bounds are smaller than the camera view in either direction then the camera's position will be locked to the center of the bounds area in that axis.
 
 _PARAMETERS_
@@ -119,17 +189,17 @@ _PARAMETERS_
 ## Camera Properties
 Properties of the camera object that you may want to get or set.
 
-#### pos <kbd>vector2</kbd>
+### pos <kbd>vector2</kbd>
 The camera's position. Set `pos.x` and `pos.y` to move the camera around.
 
-#### rot <kbd>number</kbd>
+### rot <kbd>number</kbd>
 The camera's rotation, in radians.
 
-#### zoom <kbd>number</kbd>
+### zoom <kbd>number</kbd>
 The camera's zoom. Set it higher to zoom in, or lower to zoom out.
 
-#### scale_mode <kbd>string / enum</kbd>
-How the camera adapts when the window size is changed.
+### scale_mode <kbd>string</kbd>
+How the camera adapts when the window size is changed. See the documentation for the constructor function (near the top of the page) for a list of available options.
 
-#### follow_lerp_speed <kbd>number</kbd>
+### follow_lerp_speed <kbd>number</kbd>
 The camera's interpolation speed, used when following objects.
