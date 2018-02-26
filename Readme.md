@@ -9,6 +9,7 @@ A camera library for Löve. (A work in progress)
 	* Fixed Width
 	* Fixed Height
 * Initial View Area
+* Fixed Aspect Ratio (black bars)
 * Multiple cameras
 * Zoom
 * Shake
@@ -19,7 +20,6 @@ A camera library for Löve. (A work in progress)
 * World-to-Screen transform
 
 ## To Do:
-* Fixed Aspect Ratio (black bars)
 * Camera Bounds
 * Follow Deadzone
 * Split-Screen Support ((?) use fixed aspect + an offset?)
@@ -28,10 +28,24 @@ A camera library for Löve. (A work in progress)
 * Rotational Shake
 * Multi-Follow Zoom (?)
 
-## Constructor & Basic Usage
+## Constructor
 
-### M.new(pos, rot, zoom_or_area, inactive, scale_mode)
+### M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
 Creates a new camera object. The module stores the latest active camera in `M.cur_cam`. The `scale_mode` must be one of the following strings: "expand view", "fixed area", "fixed width", or "fixed height". `zoom_or_area` can either be a zoom value (a number) or a table or vector with the dimensions of the desired view area. If it's not a number, Lovercam will look for "x" and "y" or "w" and "h", or [1] and [2] fields.
+
+_PARAMETERS_
+* __pos__ <kbd>table | vector2</kbd> - _optional_ - Initial position of the camera. Must have `x` and `y` fields. Defaults to (0, 0).
+* __rot__ <kbd>number</kbd> - _optional_ - Initial rotation of the camera. Defaults to 0.
+* __zoom_or_area__ <kbd>number | table | vector2</kbd> - Either the initial zoom or the initial view area of the camera. Pass in a number, and it will be used as a zoom value. Pass in a table or vector type (anything with `x, y`, `w, h`, or `[1], [2]` fields), and it will be used as a view area width and height, and the camera's zoom will be calculated based on this. The actual area rendered may not match this exactly, it depends on your window proportion and any fixed aspect ratio you have set. The necessary adjustments will be made based on the camera's scale mode. ("expand view" cameras will still zoom, based on a "fixed area" calculation). Defaults to 1.
+* __scale_mode__ <kbd>string</kbd> - _optional_ - The camera's scale mode, which determines how it handles window resizing. Must be one of the following: (Defaults to "fixed area")
+	* __"expand view"__ - How Löve works normally---zoom doesn't change---if the window is made larger a larger area is rendered, and vice versa.
+	* __"fixed area"__ - Lovercam's default (because it's the best). The camera zooms in or out to show the same _area_ of game world, regardless of window size and proportion.
+	* __"fixed width"__ - The camera zooms to show the same horizontal amount of world. The top and bottom will be cropped or expanded depending on the window proportion.
+	* __"fixed height"__ - The camera zooms to show the same vertical amount of space. The sides will be cropped or expanded depending on the window proportion.
+* __fixed_aspect_ratio__ <kbd>number</kbd> _optional_ - The aspect ratio that the viewport will be fixed to (if specified). If you pass in a value here, the camera will crop the area that it draws to as necessary maintain this aspect ratio. It will either crop the top and bottom, or left and right, depending on the aspect ratio and your window proportion. The cropping is applied and removed along with the camera's transform (with `apply_transform` and `reset_transform`). Defaults to `nil` (no aspect ratio enforced). 
+* __inactive__ <kbd>bool</kbd> _optional_ - If the camera should be inactive when initialized. This just means the camera won't be set as the active camera. Defaults to `false` (i.e. active).
+
+## Basic Usage
 
 Use `apply_transform()` and `reset_transform()` to push and pop a camera's view transform from Löve's rendering transform stack. Call `M.window_resized()` in `love.resize()` so your cameras zoom correctly when the window changes. Make sure to call `M.update()` in `love.update()` (or update cameras one-by-one if you want) if you are doing any shake, recoil, or following.
 
@@ -104,10 +118,6 @@ The camera's zoom. Set it higher to zoom in, or lower to zoom out.
 
 #### scale_mode <kbd>string / enum</kbd>
 How the camera adapts when the window size is changed.
-* __"expand view"__ - How Löve works normally---zoom doesn't change---if the window is made larger a larger area is rendered, and vice versa.
-* __"fixed area"__ - Lovercam's default (because it's the best). The camera zooms in or out to show the same _area_ of game world, regardless of window size and proportion.
-* __"fixed width"__ - The camera zooms to show the same horizontal amount of world. Vertical view space will be cropped or expanded depending on the window proportion.
-* __"fixed height"__ - The camera zooms to show the same vertical amount of space. The sides will be cropped or expanded depending on the window proportion.
 
 #### follow_lerp_speed <kbd>number</kbd>
 The camera's interpolation speed, used when following objects.

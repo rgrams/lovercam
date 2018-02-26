@@ -29,7 +29,7 @@ local sqrt = math.sqrt
 local rand = love.math.random
 local TWO_PI = math.pi*2
 
---##############################  Utilities & Misc.  ##############################
+--##############################  Private Functions  ##############################
 
 local function rotate(x, y, a) -- vector rotate with x, y
 	local ax, ay = cos(a), sin(a)
@@ -59,7 +59,27 @@ local function is_vec(v) -- check if `v` is a vector or a table with two values
 	end
 end
 
---##############################  Module Functions ##############################
+local function get_aspect_rect_in_win(aspect_ratio, win_x, win_y)
+	local s = math.min(win_x/aspect_ratio, win_y)
+	local w, h = s*aspect_ratio, s
+	local x, y = (win_x - w)/2, (win_y - h)/2
+	return x, y, w, h
+end
+
+local function get_zoom_or_area(zoom_area)
+	local t = type(zoom_area)
+	if t == "nil" then
+		return 1 -- default value
+	elseif t == "number" then
+		return zoom_area -- if number
+	else
+		x, y = is_vec(zoom_area)
+		if x and y then
+			return x, y -- if vec
+		end
+	end
+	return -- invalid value, returns nil
+end
 
 local function get_zoom_for_new_window(z, scale_mode, old_x, old_y, new_x, new_y)
 	if scale_mode == "expand view" then
@@ -77,32 +97,16 @@ local function get_zoom_for_new_window(z, scale_mode, old_x, old_y, new_x, new_y
 	end
 end
 
-local function get_inital_zoom(zoom_area, win_x, win_y, scale_mode)
-	-- Want initial zoom to respect user settings.
-	-- If `zoom_area` is an area, we want to use
-	-- that even if "expand view" mode is used.
-	-- Use "fixed area" mode to get a nice fit
-	-- regardless of proportion differences.
-	scale_mode = scale_mode == "expand view" and "fixed area" or scale_mode
-	zoom_area = zoom_area or 1
-	local z = 1
-	if type(zoom_area) == "number" then
-		return zoom_area
-	else -- check for vector
-		view_x, view_y = is_vec(zoom_area)
-		if view_x and view_y then
-			return get_zoom_for_new_window(z, scale_mode, view_x, view_y, win_x, win_y)
-		else
-			error("Lovercam - get_initial_zoom - invalid zoom or area: " .. tostring(zoom_area))
-		end
-	end
-end
+--##############################  Module Functions ##############################
 
 function M.window_resized(w, h) -- call once on module and it updates all cameras
 	for i, self in ipairs(cameras) do
 		self.zoom = get_zoom_for_new_window(self.zoom, self.scale_mode, self.win.x, self.win.y, w, h)
 		self.win.x = w;  self.win.y = h
 		self.half_win.x = self.win.x / 2;  self.half_win.y = self.win.y / 2
+		if self.aspect_ratio then
+			self.vp.x, self.vp.y, self.vp.w, self.vp.h = get_aspect_rect_in_win(self.aspect_ratio, w, h)
+		end
 	end
 end
 
@@ -138,7 +142,6 @@ local function update(self, dt)
 		fx, fy = lerpdt(self.pos.x, self.pos.y, fx, fy, self.follow_lerp_speed, dt)
 		self.pos.x, self.pos.y = fx, fy
 
-		-- TODO - follow weights
 		-- TODO - follow deadzone
 	end
 
@@ -173,15 +176,14 @@ local function apply_transform(self)
 	love.graphics.scale(self.zoom, self.zoom)
 	love.graphics.translate(-self.pos.x - self.shake_x, -self.pos.y - self.shake_y)
 
-	-- TODO - fixed aspect ratio stuff
-	--if self.fixed_aspect_ratio then
-	--	love.graphics.setScissor(x, y, width, height)
-	--end
+	if self.aspect_ratio then
+		love.graphics.setScissor(self.vp.x, self.vp.y, self.vp.w, self.vp.h)
+	end
 end
 
 local function reset_transform(self)
 	love.graphics.pop()
-	if self.fixed_aspect_ratio then love.graphics.setScissor() end
+	if self.aspect_ratio then love.graphics.setScissor() end
 end
 
 local function screen_to_world(self, x, y, delta)
@@ -268,17 +270,18 @@ local function unfollow(self, obj)
 	end
 end
 
-function M.new(pos, rot, zoom_or_area, inactive, scale_mode)
+function M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
 	local win_x, win_y = love.graphics.getDimensions()
 	scale_mode = scale_mode or "fixed area"
-	local zoom = get_inital_zoom(zoom_or_area, win_x, win_y, scale_mode)
+
 	local n = {
 		-- User Settings:
 		active = not inactive,
 		pos = vec2(pos.x, pos.y),
 		rot = rot or 0,
-		zoom = zoom,
+		zoom = 1,
 		scale_mode = scale_mode,
+		aspect_ratio = fixed_aspect_ratio,
 
 		-- functions, state properties, etc.
 		apply_transform = apply_transform,
@@ -305,6 +308,29 @@ function M.new(pos, rot, zoom_or_area, inactive, scale_mode)
 		unfollow = unfollow,
 		follow_lerp_speed = 3
 	}
+	-- Fixed aspect ratio - get viewport/scissor
+	local vp = {}
+	if fixed_aspect_ratio then
+		vp.x, vp.y, vp.w, vp.h = get_aspect_rect_in_win(n.aspect_ratio, win_x, win_y)
+	else
+		vp.x, vp.y, vp.w, vp.h = 0, 0, win_x, win_y
+	end
+	n.vp = vp
+
+	-- Zoom
+	local vx, vy = get_zoom_or_area(zoom_or_area)
+	if not vx then
+		error("Lovercam - M.new() - invalid zoom or area: " .. tostring(zoom_or_area))
+	elseif vx and not vy then -- user supplied a zoom value, keep this zoom no matter what
+		n.zoom = vx
+	else -- user supplied a view area - use this with scale_mode and viewport to find zoom
+		-- Want initial zoom to respect user settings. Even if "expand view" mode is used,
+		-- we want to zoom so the specified area fits the window. Use "fixed area" mode
+		-- instead to get a nice fit regardless of proportion differences.
+		local sm = scale_mode == "expand view" and "fixed area" or scale_mode
+		n.zoom = get_zoom_for_new_window(1, sm, vx, vy, n.vp.w, n.vp.h)
+	end
+
 	if n.active then M.cur_cam = n end
 	table.insert(cameras, n)
 	return n
