@@ -13,13 +13,14 @@ A camera library for Löve. (A work in progress)
 * Zoom
 * Shake
 * Recoil
-* Following
-* Screen-to-World transforms
+* Smoothed Following
+* Weighted Multi-Following
+* Screen-to-World transform
+* World-to-Screen transform
 
 ## To Do:
 * Fixed Aspect Ratio (black bars)
 * Camera Bounds
-* Weighted Multi-Following
 * Follow Deadzone
 * Split-Screen Support ((?) use fixed aspect + an offset?)
 * Camera Lead
@@ -27,12 +28,12 @@ A camera library for Löve. (A work in progress)
 * Rotational Shake
 * Multi-Follow Zoom (?)
 
-## Basic Setup
+## Constructor & Basic Usage
 
 ### M.new(pos, rot, zoom_or_area, inactive, scale_mode)
-Creates a new camera object. The module stores the latest active camera in `M.cur_cam`. The `scale_mode` must be one of the following strings: "expand view", "fixed area", "fixed width", or "fixed height". `zoom_or_area` can either be a zoom value (<kbd>number</kbd>) or a table or vector with the dimensions of the desired view area. If it's not a number, Lovercam will look for "x" and "y" or "w" and "h", or [1] and [2] fields.
+Creates a new camera object. The module stores the latest active camera in `M.cur_cam`. The `scale_mode` must be one of the following strings: "expand view", "fixed area", "fixed width", or "fixed height". `zoom_or_area` can either be a zoom value (a number) or a table or vector with the dimensions of the desired view area. If it's not a number, Lovercam will look for "x" and "y" or "w" and "h", or [1] and [2] fields.
 
-Use `apply_transform()` and `reset_transform()` to push and pop a camera's view transform from Löve's rendering transform stack. Call `M.window_resized()` in `love.resize()` so your cameras zoom correctly when the window changes. Make sure to call `M.update()` in `love.update()` (or update cameras one-by-one if you want), if you are doing any shake, recoil, or following.
+Use `apply_transform()` and `reset_transform()` to push and pop a camera's view transform from Löve's rendering transform stack. Call `M.window_resized()` in `love.resize()` so your cameras zoom correctly when the window changes. Make sure to call `M.update()` in `love.update()` (or update cameras one-by-one if you want) if you are doing any shake, recoil, or following.
 
 ## Update Functions
 
@@ -65,6 +66,9 @@ Activates/switches to this camera.
 ### cam:screen_to_world(x, y, delta)
 Transforms `x` and `y` from screen coordinates to world coordinates based on this camera's position, rotation, and zoom.
 
+### cam:world_to_screen(x, y, delta)
+Transform `x` and `x` from world coordinates to screen coordinates based on this camera's position, rotation, and zoom.
+
 ### cam:pan(dx, dy)
 Moves this camera's position by `(dx, dy)`. This is just for convenience, you can also move the camera around by setting its `pos` property (`pos.x` and `pos.y`).
 
@@ -81,7 +85,7 @@ Adds a recoil to the camera. This is sort of like a shake, only it just offsets 
 Cancels all shakes and recoils on this camera.
 
 ### cam:follow(obj, allowMultiFollow, weight)
-Tells this camera to smoothly follow `obj`. This requires that `obj` has a property `pos` with `x` and `y` elements. Set the camera's `follow_lerp_speed` property to adjust the smoothing speed. If `allowMultiFollow` is true then `obj` will be added to a list of objects that the camera is following---the camera's lerp target will be the average position of all objects on the list.
+Tells this camera to smoothly follow `obj`. This requires that `obj` has a property `pos` with `x` and `y` elements. Set the camera's `follow_lerp_speed` property to adjust the smoothing speed. If `allowMultiFollow` is true then `obj` will be added to a list of objects that the camera is following---the camera's lerp target will be the average position of all objects on the list. The optional `weight` parameter (default=1) allows you to control how much each followed object influences the camera position. You might set it to, say, 1 for your character, and 0.5 for the mouse cursor for a top-down shooter. This only has an effect if the camera is following multiple objects. Call `cam:follow()` again with the same object to update the weight.
 
 ### cam:unfollow(obj)
 Removes `obj` from the camera's list of followed objects. If no object is given, it will unfollow anything and everything it is currently following.
