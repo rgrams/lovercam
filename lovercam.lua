@@ -29,6 +29,36 @@ local sqrt = math.sqrt
 local rand = love.math.random
 local TWO_PI = math.pi*2
 
+--##############################  Utilities & Misc.  ##############################
+
+local function rotate(x, y, a) -- vector rotate with x, y
+	local ax, ay = cos(a), sin(a)
+	return ax*x - ay*y, ay*x + ax*y
+end
+
+local falloff_funcs = {
+	linear = function(x) return x end,
+	quadratic = function(x) return x*x end
+}
+
+local function lerpdt(ax, ay, bx, by, s, dt) -- vector lerp with x, y over dt
+	local k = 1 - 0.5^(dt*s)
+	return ax + (bx - ax)*k, ay + (by - ay)*k
+end
+
+local function is_vec(v) -- check if `v` is a vector or a table with two values
+	local t = type(v)
+	if t == "table" or t == "userdata" or t == "cdata" then
+		if v.x and v.y then
+			return v.x, v.y
+		elseif v.w and v.h then
+			return v.w, v.h
+		elseif v[1] and v[2] then
+			return v[1], v[2]
+		end
+	end
+end
+
 --##############################  Module Functions ##############################
 
 local function get_zoom_for_new_window(z, scale_mode, old_x, old_y, new_x, new_y)
@@ -58,14 +88,13 @@ local function get_inital_zoom(zoom_area, win_x, win_y, scale_mode)
 	local z = 1
 	if type(zoom_area) == "number" then
 		return zoom_area
-	elseif zoom_area.x and zoom_area.y then -- x, y vector
-		return get_zoom_for_new_window(z, scale_mode, zoom_area.x, zoom_area.y, win_x, win_y)
-	elseif zoom_area.w and zoom_area.h then -- w, h table
-		return get_zoom_for_new_window(z, scale_mode, zoom_area.w, zoom_area.h, win_x, win_y)
-	elseif zoom_area[1] and zoom_area[2] then -- 1, 2 list
-		return get_zoom_for_new_window(z, scale_mode, zoom_area[1], zoom_area[2], win_x, win_y)
-	else
-		error("Lovercam - get_initial_zoom - invalid zoom or area: " .. tostring(zoom_area))
+	else -- check for vector
+		view_x, view_y = is_vec(zoom_area)
+		if view_x and view_y then
+			return get_zoom_for_new_window(z, scale_mode, view_x, view_y, win_x, win_y)
+		else
+			error("Lovercam - get_initial_zoom - invalid zoom or area: " .. tostring(zoom_area))
+		end
 	end
 end
 
@@ -91,23 +120,6 @@ local F = {	"apply_transform", "reset_transform", "deactivate", "pan", "screen_t
 
 for i, func in ipairs(F) do -- calling functions on the module passes the call to the current camera
 	M[func] = function(...) return M.cur_cam[func](M.cur_cam, ...) end
-end
-
---##############################  Utilities & Misc.  ##############################
-
-local function rotate(x, y, a) -- vector rotate with x, y
-	local ax, ay = cos(a), sin(a)
-	return ax*x - ay*y, ay*x + ax*y
-end
-
-local falloff_funcs = {
-	linear = function(x) return x end,
-	quadratic = function(x) return x*x end
-}
-
-local function lerpdt(ax, ay, bx, by, s, dt) -- vector lerp with x, y over dt
-	local k = 1 - 0.5^(dt*s)
-	return ax + (bx - ax)*k, ay + (by - ay)*k
 end
 
 --##############################  Camera Object Functions  ##############################
