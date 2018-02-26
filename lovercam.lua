@@ -87,7 +87,7 @@ end
 
 -- convert these names into functions applied to the current camera
 local F = {	"apply_transform", "reset_transform", "deactivate", "pan", "screen_to_world",
-	"zoom_in", "shake", "recoil", "stop_shaking", "follow", "unfollow" }
+	"world_to_screen", "zoom_in", "shake", "recoil", "stop_shaking", "follow", "unfollow" }
 
 for i, func in ipairs(F) do -- calling functions on the module passes the call to the current camera
 	M[func] = function(...) return M.cur_cam[func](M.cur_cam, ...) end
@@ -180,7 +180,13 @@ local function screen_to_world(self, x, y, delta)
 	return x, y
 end
 
--- TODO - world_to_screen()
+local function world_to_screen(self, x, y, delta)
+	if not delta then x = x - self.pos.x;  y = y - self.pos.y end
+	x, y = rotate(x, y, -self.rot)
+	x, y = x*self.zoom, y*self.zoom
+	if not delta then x = x + self.half_win.x;  y = y + self.half_win.y end
+	return x, y
+end
 
 local function deactivate(self)
 	self.active = false
@@ -266,6 +272,7 @@ function M.new(pos, rot, zoom_or_area, inactive, scale_mode)
 		half_win = vec2(win_x/2, win_y/2),
 		win_resized = win_resized,
 		screen_to_world = screen_to_world,
+		world_to_screen = world_to_screen,
 		activate = activate,
 		deactivate = deactivate,
 		pan = pan,
