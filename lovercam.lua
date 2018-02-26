@@ -116,11 +116,13 @@ local function update(self, dt)
 	-- update follows
 	if self.follow_count > 0 then
 		-- average position of all follows
+		local total_weight = 0 -- total weight
 		local fx, fy = 0, 0
 		for obj, data in pairs(self.follows) do
-			fx = fx + obj.pos.x;  fy = fy + obj.pos.y
+			fx = fx + obj.pos.x * data.weight;  fy = fy + obj.pos.y * data.weight
+			total_weight = total_weight + data.weight
 		end
-		fx = fx / self.follow_count;  fy = fy / self.follow_count
+		fx = fx / total_weight;  fy = fy / total_weight
 		fx, fy = lerpdt(self.pos.x, self.pos.y, fx, fy, self.follow_lerp_speed, dt)
 		self.pos.x, self.pos.y = fx, fy
 
@@ -228,12 +230,13 @@ end
 
 -- following requires 'obj' to have a property 'pos' with 'x' and 'y' properties
 local function follow(self, obj, allowMultiFollow, weight)
+	weight = weight or 1
 	-- using object table as key
-	if not self.follows[obj] then
+	if self.follows[obj] then -- already following, just update weight
+		self.follows[obj].weight = weight
+	else
 		self.follows[obj] = { weight=weight }
 		self.follow_count = self.follow_count + 1
-	else -- already following, just update weight
-		self.follows[obj].weight = weight
 	end
 	if not allowMultiFollow and self.follow_count > 1 then
 		for k, v in pairs(self.follows) do
