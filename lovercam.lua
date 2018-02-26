@@ -277,7 +277,7 @@ function M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
 	local n = {
 		-- User Settings:
 		active = not inactive,
-		pos = vec2(pos.x, pos.y),
+		pos = pos and vec2(pos.x, pos.y) or vec2(0, 0),
 		rot = rot or 0,
 		zoom = 1,
 		scale_mode = scale_mode,
