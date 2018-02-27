@@ -16,12 +16,12 @@ A camera library for Löve. (A work in progress)
 * Recoil
 * Smoothed Following
 * Weighted Multi-Following
+* Follow Deadzones
 * Screen-to-World transform
 * World-to-Screen transform
 * Camera Bounds
 
 ## To Do:
-* Follow Deadzone
 * Split-Screen Support - or any custom scissor
 * Camera Lead
 * Zoom to Point
@@ -163,13 +163,15 @@ _PARAMETERS_
 ### cam:stop_shaking()
 Cancels all shakes and recoils on this camera.
 
-### cam:follow(obj, [allowMultiFollow], [weight])
+### cam:follow(obj, [allowMultiFollow], [weight], [deadzone])
 Tells this camera to smoothly follow `obj`. This requires that `obj` has a property `pos` with `x` and `y` elements. Set the camera's `follow_lerp_speed` property to adjust the smoothing speed. If `allowMultiFollow` is true then `obj` will be added to a list of objects that the camera is following---the camera's lerp target will be the average position of all objects on the list. The optional `weight` parameter allows you to control how much each followed object influences the camera position. You might set it to, say, 1 for your character, and 0.5 for the mouse cursor for a top-down shooter. This only has an effect if the camera is following multiple objects. Call `cam:follow()` again with the same object to update the weight.
+To set a deadzone on the camera follow (the camera won't move unless the object moves out of the deadzone), supply a table with `x`, `y`, `w`, and `h` fields. These fields should contain 0-to-1 screen percentage values that describe the deadzone rectangle. If you are using a fixed aspect ratio camera, the deadzone will be based on the viewport area, not the full window. Deadzones work _per-object_. If your camera is following a single object and you want to change which object that is without changing the deadzone, you can just put `true` for the `deadzone`, and the deadzone settings for the previous object will be copied and used for the new object. For this to work, `allowMultiFollow` must be `false` and the camera can't be following multiple objects.
 
 _PARAMETERS_
 * __obj__ <kbd>table</kbd> - The object to follow. This must be a table with a property `pos` that has `x` and `y` elements.
 * __allowMultiFollow__ <kbd>bool</kbd> - _optional_ - Whether to add `obj` to the list of objects to follow, or to replace the list with only `obj`. Defaults to `false`.
 * __weight__ <kbd>number</kbd> - _optional_ - The averaging weight for this object. This only matters if the camera is following multiple objects. Higher numbers will make the camera follow this object more closely than the other objects, and vice versa. The actual number doesn't matter, only its value relative to the weights of the other objects this camera is following. Defaults to 1.
+* __deadzone__ <kbd>table | bool</kbd> - _optional_ - The deadzone rectangle, a table with `x`, `y`, `w`, and `h` fields. (x and y of the top left corner, and width and height.) These should be 0-to-1 screen percentages. If the window changes, the deadzone rectangle will adapt to the new window/viewport size according to these percentages. You can also put `true` for the `deadzone` to copy an existing deadzone to a new object (see the description above).
 
 ### cam:unfollow([obj])
 Removes `obj` from the camera's list of followed objects. If no object is given, the camera will unfollow anything and everything it is currently following.

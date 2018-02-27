@@ -47,6 +47,12 @@ local function rotate(x, y, a) -- vector rotate with x, y
 	return ax*x - ay*y, ay*x + ax*y
 end
 
+local function shallow_copy_dict(t)
+	local t2 = {}
+	for k, v in pairs(t) do t2[k] = v end
+	return t2
+end
+
 local falloff_funcs = {
 	linear = function(x) return x end,
 	quadratic = function(x) return x*x end
@@ -108,6 +114,28 @@ local function get_zoom_for_new_window(z, scale_mode, old_x, old_y, new_x, new_y
 	end
 end
 
+local function get_offset_from_deadzone(self, obj, deadzone)
+	-- get target pos in screen coordinates
+	local tx, ty = obj.pos.x, obj.pos.y
+	tx, ty = self:world_to_screen(tx, ty)
+
+	-- convert deadzone screen percent values to screen pixel values
+	--		and x, y, w, y to lt, rt, top, bot
+	--		use viewport, not full screen
+	local dz = deadzone
+	local lt, rt = dz.x*self.vp.w + self.vp.x, (dz.x+dz.w)*self.vp.w + self.vp.x
+	local top, bot = dz.y*self.vp.h + self.vp.y, (dz.y+dz.h)*self.vp.h + self.vp.y
+	-- get target offset outside of deadzone
+	local x = tx < lt and (tx-lt) or tx > rt and (tx-rt) or 0
+	local y = ty < top and (ty-top) or ty > bot and (ty-bot) or 0
+
+	-- if target is outside of deadzone, convert the offset back to world coordinates
+	if x ~= 0 or y ~= 0 then
+		return self:screen_to_world(x, y, true)
+	end
+	return x, y
+end
+
 --##############################  Module Functions ##############################
 
 function M.window_resized(w, h) -- call once on module and it updates all cameras
@@ -117,6 +145,8 @@ function M.window_resized(w, h) -- call once on module and it updates all camera
 		self.half_win.x = self.win.x / 2;  self.half_win.y = self.win.y / 2
 		if self.aspect_ratio then
 			self.vp.x, self.vp.y, self.vp.w, self.vp.h = get_aspect_rect_in_win(self.aspect_ratio, w, h)
+		else
+			self.vp.x, self.vp.y, self.vp.w, self.vp.h = 0, 0, w, h
 		end
 	end
 end
@@ -146,14 +176,18 @@ local function update(self, dt)
 		local total_weight = 0 -- total weight
 		local fx, fy = 0, 0
 		for obj, data in pairs(self.follows) do
-			fx = fx + obj.pos.x * data.weight;  fy = fy + obj.pos.y * data.weight
+			if data.deadzone then
+				local ox, oy = get_offset_from_deadzone(self, obj, data.deadzone)
+				fx = fx + self.pos.x + ox*data.weight
+				fy = fy + self.pos.y + oy*data.weight
+			else
+				fx = fx + obj.pos.x*data.weight;  fy = fy + obj.pos.y*data.weight
+			end
 			total_weight = total_weight + data.weight
 		end
 		fx = fx / total_weight;  fy = fy / total_weight
 		fx, fy = lerpdt(self.pos.x, self.pos.y, fx, fy, self.follow_lerp_speed, dt)
 		self.pos.x, self.pos.y = fx, fy
-
-		-- TODO - follow deadzone
 	end
 
 	self:enforce_bounds()
@@ -254,18 +288,34 @@ local function stop_shaking(self) -- clears all shakes and recoils
 end
 
 -- following requires 'obj' to have a property 'pos' with 'x' and 'y' properties
-local function follow(self, obj, allowMultiFollow, weight)
+local function follow(self, obj, allowMultiFollow, weight, deadzone)
 	weight = weight or 1
 	-- using object table as key
-	if self.follows[obj] then -- already following, just update weight
+	if self.follows[obj] then -- already following, update weight & deadzone
 		self.follows[obj].weight = weight
+		if deadzone and type(deadzone) == "table" then
+			if self.follows[obj].deadzone then -- update existing deadzone
+				for k, v in pairs(deadzone) do self.follows[obj][k] = v end
+			else -- no existing deadzone, add deadzone table
+				self.follows[obj].deadzone = shallow_copy_dict(deadzone)
+			end
+		end
 	else
 		self.follows[obj] = { weight=weight }
+		if deadzone and type(deadzone) == "table" then
+			self.follows[obj].deadzone = shallow_copy_dict(deadzone)
+		end
 		self.follow_count = self.follow_count + 1
 	end
 	if not allowMultiFollow and self.follow_count > 1 then
 		for k, v in pairs(self.follows) do
-			if k ~= obj then self.follows[k] = nil end
+			if k ~= obj then
+				-- maintain deadzone if passed `true`
+				if deadzone == true and v.deadzone and self.follow_count == 2 then
+					self.follows[obj].deadzone = v.deadzone
+				end
+				self.follows[k] = nil
+			end
 		end
 		self.follow_count = 1
 	end
