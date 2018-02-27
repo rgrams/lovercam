@@ -25,7 +25,6 @@ M.default_recoil_falloff = "quadratic"
 -- localize stuff
 local min = math.min
 local max = math.max
-local abs = math.abs
 local sin = math.sin
 local cos = math.cos
 local sqrt = math.sqrt
@@ -33,14 +32,6 @@ local rand = love.math.random
 local TWO_PI = math.pi*2
 
 --##############################  Private Functions  ##############################
-
-local function sign(x)
-	return x >= 0 and 1 or -1
-end
-
-local function max_abs(a, b)
-	return abs(a) > abs(b) and a or b
-end
 
 local function rotate(x, y, a) -- vector rotate with x, y
 	local ax, ay = cos(a), sin(a)
@@ -343,7 +334,7 @@ local bounds_vec_table = { tl=vec2(), tr=vec2(), bl=vec2(), br=vec2() } -- save 
 
 local function enforce_bounds(self)
 	if self.bounds then
-		local bounds = self.bounds
+		local b = self.bounds
 		local vp = self.vp
 		local c = bounds_vec_table -- corners
 		-- get viewport corner positions in world space
@@ -351,35 +342,27 @@ local function enforce_bounds(self)
 		c.tr.x, c.tr.y = self:screen_to_world(vp.x + vp.w, vp.y) -- top right
 		c.bl.x, c.bl.y = self:screen_to_world(vp.x, vp.y + vp.h) -- bottom left
 		c.br.x, c.br.y = self:screen_to_world(vp.x + vp.w, vp.y + vp.h) -- bottom right
+		-- get world-aligned viewport bounding box
+		local w_lt = min(c.tl.x, c.tr.x, c.bl.x, c.br.x) -- world left
+		local w_rt = max(c.tl.x, c.tr.x, c.bl.x, c.br.x) -- world right
+		local w_top = min(c.tl.y, c.tr.y, c.bl.y, c.br.y) -- world top
+		local w_bot = max(c.tl.y, c.tr.y, c.bl.y, c.br.y) -- world botom
+		local w_w, w_h = w_rt - w_lt, w_bot - w_top -- world width, height
 
-		local w_view_w = max(c.tl.x, c.tr.x, c.bl.x, c.br.x) - min(c.tl.x, c.tr.x, c.bl.x, c.br.x)
-		local w_view_h = max(c.tl.y, c.tr.y, c.bl.y, c.br.y) - min(c.tl.y, c.tr.y, c.bl.y, c.br.y)
-		local set_x, set_y = true, true
-		if w_view_w > bounds.width then
-			self.pos.x = bounds.center_x
-			set_x = false
+		local x, y -- final x, y pos
+		if w_w > b.width then
+			x = b.center_x
+		else
+			x = w_lt < b.lt and (w_lt-b.lt) or w_rt > b.rt and (w_rt-b.rt) or 0
+			x = self.pos.x - x
 		end
-		if w_view_h > bounds.height then
-			self.pos.y = bounds.center_y
-			set_y = false
+		if w_h > b.height then
+			y = b.center_y
+		else
+			y = w_top < b.top and (w_top-b.top) or w_bot > b.bot and (w_bot-b.bot) or 0
+			y = self.pos.y - y
 		end
-
-		if set_x or set_y then
-			local correct = vec2() -- total correction vec
-			for k, v in pairs(c) do
-				-- check if it's outside bounds
-				if set_x then
-					local x = v.x < bounds.lt and (v.x-bounds.lt) or v.x > bounds.rt and (v.x-bounds.rt) or 0
-					correct.x = sign(correct.x) == sign(x) and max_abs(correct.x, x) or correct.x + x
-				end
-				if set_y then
-					local y = v.y > bounds.bot and (v.y-bounds.bot) or v.y < bounds.top and (v.y-bounds.top) or 0
-					correct.y = sign(correct.y) == sign(y) and max_abs(correct.y, y) or correct.y + y
-				end
-			end
-			self.pos.x = self.pos.x - correct.x
-			self.pos.y = self.pos.y - correct.y
-		end
+		self.pos.x = x;  self.pos.y = y
 	end
 end
 
