@@ -287,8 +287,8 @@ local function set_bounds(self, lt, rt, top, bot)
 			lt=lt, rt=rt, top=top, bot=bot,
 			width=rt-lt, height=bot-top
 		}
-		b.center_x = lt + b.w/2
-		b.center_y = top + b.h/2
+		b.center_x = lt + b.width/2
+		b.center_y = top + b.height/2
 		self.bounds = b
 	else
 		self.bounds = nil
