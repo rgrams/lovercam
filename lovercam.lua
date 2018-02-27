@@ -160,7 +160,7 @@ function M.update_current(dt)
 end
 
 -- convert these names into functions applied to the current camera
-local F = {	"apply_transform", "reset_transform", "deactivate", "pan", "screen_to_world",
+local F = {	"apply_transform", "reset_transform", "pan", "screen_to_world",
 	"world_to_screen", "zoom_in", "shake", "recoil", "stop_shaking", "follow", "unfollow", "set_bounds" }
 
 for i, func in ipairs(F) do -- calling functions on the module passes the call to the current camera
@@ -249,14 +249,8 @@ local function world_to_screen(self, x, y, delta)
 	return x, y
 end
 
-local function deactivate(self)
-	self.active = false
-	self.cur_cam = fallback_cam
-end
-
 local function activate(self)
 	self.active = true
-	if self.cur_cam then self.cur_cam:deactivate() end
 	self.cur_cam = self
 end
 
@@ -411,7 +405,6 @@ function M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
 		screen_to_world = screen_to_world,
 		world_to_screen = world_to_screen,
 		activate = activate,
-		deactivate = deactivate,
 		pan = pan,
 		zoom_in = zoom_in,
 		update = update,
