@@ -18,7 +18,6 @@ end
 
 M.cur_cam = nil -- set to fallback_cam at end of module
 local cameras = {}
-M.SCALE_MODES = { "expand view", "fixed area", "fixed width", "fixed height" }
 M.default_shake_falloff = "linear"
 M.default_recoil_falloff = "quadratic"
 
