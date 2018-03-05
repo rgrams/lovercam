@@ -30,12 +30,12 @@ A camera library for Löve. (A work in progress)
 
 ## Constructor
 
-### M.new([pos], [rot], [zoom_or_area], [scale_mode], [fixed_aspect_ratio], [inactive])
+### M.new([pos], [angle], [zoom_or_area], [scale_mode], [fixed_aspect_ratio], [inactive])
 Creates a new camera object. If not `inactive`, the current camera (at M.cur_cam) will be set to this one.
 
 _PARAMETERS_
 * __pos__ <kbd>table | vector2</kbd> - _optional_ - Initial position of the camera. Must have `x` and `y` fields. Defaults to (0, 0).
-* __rot__ <kbd>number</kbd> - _optional_ - Initial rotation of the camera. Defaults to 0.
+* __angle__ <kbd>number</kbd> - _optional_ - Initial rotation of the camera. Defaults to 0.
 * __zoom_or_area__ <kbd>number | table | vector2</kbd> - _optional_ - Either the initial zoom or the initial view area of the camera. Pass in a number, and it will be used as a zoom value. Pass in a table or vector type (anything with `x, y`, `w, h`, or `[1], [2]` fields), and it will be used as a view area width and height, and the camera's zoom will be calculated based on this. The actual area rendered may not match this exactly, it depends on your window proportion and any fixed aspect ratio you have set. The necessary adjustments will be made based on the camera's scale mode. ("expand view" cameras will still zoom, based on a "fixed area" calculation). Defaults to 1.
 * __scale_mode__ <kbd>string</kbd> - _optional_ - The camera's scale mode, which determines how it handles window resizing. Must be one of the following: (Defaults to "fixed area")
 	* __"expand view"__ - How Löve works normally---zoom doesn't change---if the window is made larger a larger area is rendered, and vice versa.
@@ -195,7 +195,7 @@ Properties of the camera object that you may want to get or set.
 ### pos <kbd>vector2</kbd>
 The camera's position. Set `pos.x` and `pos.y` to move the camera around.
 
-### rot <kbd>number</kbd>
+### angle <kbd>number</kbd>
 The camera's rotation, in radians.
 
 ### zoom <kbd>number</kbd>

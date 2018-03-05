@@ -207,7 +207,7 @@ local function apply_transform(self)
 	-- center view on camera - offset by half window res
 	love.graphics.translate(self.half_win.x, self.half_win.y)
 	-- view rot and translate are negative because we're really transforming the world
-	love.graphics.rotate(-self.rot)
+	love.graphics.rotate(-self.angle)
 	love.graphics.scale(self.zoom, self.zoom)
 	love.graphics.translate(-self.pos.x - self.shake_x, -self.pos.y - self.shake_y)
 
@@ -225,7 +225,7 @@ local function screen_to_world(self, x, y, delta)
 	-- screen center offset
 	if not delta then x = x - self.half_win.x;  y = y - self.half_win.y end
 	x, y = x/self.zoom, y/self.zoom -- scale
-	x, y = rotate(x, y, self.rot) -- rotate
+	x, y = rotate(x, y, self.angle) -- rotate
 	-- translate
 	if not delta then x = x + self.pos.x;  y = y + self.pos.y end
 	return x, y
@@ -233,7 +233,7 @@ end
 
 local function world_to_screen(self, x, y, delta)
 	if not delta then x = x - self.pos.x;  y = y - self.pos.y end
-	x, y = rotate(x, y, -self.rot)
+	x, y = rotate(x, y, -self.angle)
 	x, y = x*self.zoom, y*self.zoom
 	if not delta then x = x + self.half_win.x;  y = y + self.half_win.y end
 	return x, y
@@ -365,7 +365,7 @@ local function enforce_bounds(self)
 	end
 end
 
-function M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
+function M.new(pos, angle, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
 	local win_x, win_y = love.graphics.getDimensions()
 	scale_mode = scale_mode or "fixed area"
 
@@ -373,7 +373,7 @@ function M.new(pos, rot, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
 		-- User Settings:
 		active = not inactive,
 		pos = pos and vec2(pos.x, pos.y) or vec2(0, 0),
-		rot = rot or 0,
+		angle = angle or 0,
 		zoom = 1,
 		scale_mode = scale_mode,
 		aspect_ratio = fixed_aspect_ratio,
