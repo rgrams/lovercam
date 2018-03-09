@@ -432,7 +432,12 @@ function M.new(x, y, angle, zoom_or_area, scale_mode, fixed_aspect_ratio, inacti
 	return n
 end
 
-local fallback_cam = M.new(vec2(love.graphics.getDimensions())/2)
+local fallback_cam
+do
+	local x, y = love.graphics.getDimensions()
+	x, y = x/2, y/2
+	fallback_cam = M.new(x, y)
+end
 M.cur_cam = fallback_cam
 
 return M
