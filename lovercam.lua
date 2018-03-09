@@ -365,14 +365,14 @@ local function enforce_bounds(self)
 	end
 end
 
-function M.new(pos, angle, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
+function M.new(x, y, angle, zoom_or_area, scale_mode, fixed_aspect_ratio, inactive)
 	local win_x, win_y = love.graphics.getDimensions()
 	scale_mode = scale_mode or "fixed area"
 
 	local n = {
 		-- User Settings:
 		active = not inactive,
-		pos = pos and vec2(pos.x, pos.y) or vec2(0, 0),
+		pos = vec2(x or 0, y or 0),
 		angle = angle or 0,
 		zoom = 1,
 		scale_mode = scale_mode,
