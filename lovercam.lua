@@ -241,7 +241,16 @@ end
 
 local function activate(self)
 	self.active = true
-	self.cur_cam = self
+	M.cur_cam = self
+end
+
+local function final(self)
+	for i, v in ipairs(cameras) do
+		if v == self then table.remove(cameras, i) end
+	end
+	if #cameras == 1 then M.cur_cam = cameras[1]
+	else M.cur_cam = fallback_cam
+	end
 end
 
 -- convenience function for moving camera
@@ -387,6 +396,7 @@ function M.new(x, y, angle, zoom_or_area, scale_mode, fixed_aspect_ratio, inacti
 		screen_to_world = screen_to_world,
 		world_to_screen = world_to_screen,
 		activate = activate,
+		final = final,
 		pan = pan,
 		zoom_in = zoom_in,
 		update = update,
