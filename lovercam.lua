@@ -272,16 +272,16 @@ local function zoom_in(self, z)
 	self.zoom = self.zoom * (1 + z)
 end
 
-local function shake(self, intensity, dur, falloff)
+local function shake(self, dist, dur, falloff)
 	falloff = falloff_funcs[falloff or M.default_shake_falloff]
-	table.insert(self.shakes, {dist=intensity, t=dur, dur=dur, falloff=falloff})
+	table.insert(self.shakes, {dist=dist, t=dur, dur=dur, falloff=falloff})
 end
 
-local function perlin_shake(self, intensity, dur, freq, falloff)
+local function perlin_shake(self, dist, dur, freq, falloff)
 	falloff = falloff_funcs[falloff or M.default_shake_falloff]
 	freq = freq or M.default_perlin_shake_freq
 	local seed = rand()*1000
-	table.insert(self.shakes, {dist=intensity, t=dur, dur=dur, freq=freq, seed=seed, falloff=falloff})
+	table.insert(self.shakes, {dist=dist, t=dur, dur=dur, freq=freq, seed=seed, falloff=falloff})
 end
 
 local function recoil(self, vec, dur, falloff)
