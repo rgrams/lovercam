@@ -6,7 +6,7 @@ local cameras = {}
 M.default_shake_falloff = "linear"
 M.default_recoil_falloff = "quadratic"
 M.shake_rot_mult = 0.001
-M.default_shake_freq = 10
+M.default_shake_freq = 8
 M.default_follow_lerp_speed = 3
 M.viewport_align = { x = 0.5, y = 0.5 }
 
@@ -279,7 +279,7 @@ end
 
 local function perlin_shake(self, dist, dur, freq, falloff)
 	falloff = falloff_funcs[falloff or M.default_shake_falloff]
-	freq = freq or M.default_perlin_shake_freq
+	freq = freq or M.default_shake_freq
 	local seed = rand()*1000
 	table.insert(self.shakes, {dist=dist, t=dur, dur=dur, freq=freq, seed=seed, falloff=falloff})
 end
