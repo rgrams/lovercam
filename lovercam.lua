@@ -1,21 +1,6 @@
 
 local M = {}
 
--- Try to load a 'vec2' module in the current directory
-local module_dir = string.gsub(..., "%.[^%.]+$", "") .. "."
-local vec2_loaded, vec2 = pcall(require, module_dir .. "vec2")
-if not vec2_loaded then
-	-- No vec2 module found, create a minimal table with the functions we need
-	local vec2_mt = {}
-	vec2 = {
-		new = function(x, y) return setmetatable({x=x, y=y}, vec2_mt) end,
-	}
-	function vec2_mt.__call(_, x, y) return vec2.new(x, y) end
-	function vec2_mt.__div(x, y) if type(y) == "number" then return vec2.new(x.x/y, x.y/y) end end
-	function vec2_mt.__tostring(a) return string.format("(%+0.3f,%+0.3f)", a.x, a.y) end
-	setmetatable(vec2, vec2_mt)
-end
-
 M.cur_cam = nil -- set to fallback_cam at end of module
 local cameras = {}
 M.default_shake_falloff = "linear"
@@ -33,6 +18,10 @@ local rand = love.math.random
 local TWO_PI = math.pi*2
 
 --##############################  Private Functions  ##############################
+
+local function vec2(x, y)
+	return { x = x or 0, y = y or 0 }
+end
 
 local function rotate(x, y, a) -- vector rotate with x, y
 	local ax, ay = cos(a), sin(a)
@@ -132,9 +121,9 @@ end
 
 function M.window_resized(w, h) -- call once on module and it updates all cameras
 	for i, self in ipairs(cameras) do
-		self.zoom = get_zoom_for_new_window(self.zoom, self.scale_mode, self.win.x, self.win.y, w, h)
-		self.win.x = w;  self.win.y = h
-		self.half_win.x = self.win.x / 2;  self.half_win.y = self.win.y / 2
+		self.zoom = get_zoom_for_new_window(self.zoom, self.scale_mode, self.win_x, self.win_y, w, h)
+		self.win_x = w;  self.win_y = h
+		self.half_win_x = self.win_x / 2;  self.half_win_y = self.win_y / 2
 		if self.aspect_ratio then
 			self.vp.x, self.vp.y, self.vp.w, self.vp.h = get_aspect_rect_in_win(self.aspect_ratio, w, h)
 		else
@@ -217,7 +206,7 @@ local function apply_transform(self)
 	-- save previous transform
 	love.graphics.push()
 	-- center view on camera - offset by half window res
-	love.graphics.translate(self.half_win.x, self.half_win.y)
+	love.graphics.translate(self.half_win_x, self.half_win_y)
 	-- view rot and translate are negative because we're really transforming the world
 	love.graphics.rotate(-self.angle - self.shake_a)
 	love.graphics.scale(self.zoom, self.zoom)
@@ -235,7 +224,7 @@ end
 
 local function screen_to_world(self, x, y, delta)
 	-- screen center offset
-	if not delta then x = x - self.half_win.x;  y = y - self.half_win.y end
+	if not delta then x = x - self.half_win_x;  y = y - self.half_win_y end
 	x, y = x/self.zoom, y/self.zoom -- scale
 	x, y = rotate(x, y, self.angle) -- rotate
 	-- translate
@@ -247,7 +236,7 @@ local function world_to_screen(self, x, y, delta)
 	if not delta then x = x - self.pos.x;  y = y - self.pos.y end
 	x, y = rotate(x, y, -self.angle)
 	x, y = x*self.zoom, y*self.zoom
-	if not delta then x = x + self.half_win.x;  y = y + self.half_win.y end
+	if not delta then x = x + self.half_win_x;  y = y + self.half_win_y end
 	return x, y
 end
 
@@ -400,7 +389,7 @@ function M.new(x, y, angle, zoom_or_area, scale_mode, fixed_aspect_ratio, inacti
 	local n = {
 		-- User Settings:
 		active = not inactive,
-		pos = vec2(x or 0, y or 0),
+		pos = vec2(x, y),
 		angle = angle or 0,
 		zoom = 1,
 		scale_mode = scale_mode,
@@ -409,8 +398,8 @@ function M.new(x, y, angle, zoom_or_area, scale_mode, fixed_aspect_ratio, inacti
 		-- functions, state properties, etc.
 		apply_transform = apply_transform,
 		reset_transform = reset_transform,
-		win = vec2(win_x, win_y),
-		half_win = vec2(win_x/2, win_y/2),
+		win_x = win_x, win_y = win_y,
+		half_win_x = win_x/2, half_win_y = win_y/2,
 		win_resized = win_resized,
 		screen_to_world = screen_to_world,
 		world_to_screen = world_to_screen,
