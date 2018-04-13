@@ -7,6 +7,7 @@ M.default_shake_falloff = "linear"
 M.default_recoil_falloff = "quadratic"
 M.shake_rot_mult = 0.001
 M.default_shake_freq = 10
+M.default_follow_lerp_speed = 3
 
 -- localize stuff
 local min = math.min
@@ -419,7 +420,7 @@ function M.new(x, y, angle, zoom_or_area, scale_mode, fixed_aspect_ratio, inacti
 		follows = {},
 		follow_count = 0,
 		unfollow = unfollow,
-		follow_lerp_speed = 3,
+		follow_lerp_speed = M.default_follow_lerp_speed,
 		set_bounds = set_bounds,
 		enforce_bounds = enforce_bounds
 	}
