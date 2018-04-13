@@ -1,6 +1,6 @@
 # Lovercam
 
-A camera library for Löve. (A work in progress)
+A camera library for Löve. Pretty complete, but not thoroughly battle-tested.
 
 ## Feature List
 * Window resize handling - with four scale modes:
@@ -10,9 +10,14 @@ A camera library for Löve. (A work in progress)
 	* Fixed Height
 * Initial View Area
 * Fixed Aspect Ratio (black bars)
-* Multiple cameras
+	* Customizable black bar alignment
+* Switch Between Multiple Cameras
 * Zoom
 * Shake
+	* Regular
+	* With Rotation
+	* Perlin
+	* Linear or Quadratic Falloff
 * Recoil
 * Smoothed Following
 * Weighted Multi-Following
@@ -21,12 +26,15 @@ A camera library for Löve. (A work in progress)
 * World-to-Screen transform
 * Camera Bounds
 
-## To Do:
-* Split-Screen Support - or any custom scissor
-* Camera Lead
+## To Do (maybe):
+* Split-Screen / Custom Scissor Support - draw from multiple cameras
+	* Locked integer pixel ratios (may have border on all sides)
 * Zoom to Point
-* Rotational Shake
 * Multi-Follow Zoom (?)
+
+## Basic Usage
+
+Make a new camera object. Use `M.apply_transform()` and `M.reset_transform()` to push and pop the current camera's view transform from Löve's rendering transform stack. Call `M.window_resized()` in `love.resize()` so your cameras zoom correctly when the window changes. Make sure to call `M.update()` in `love.update()` (or update cameras one-by-one if you want) if you are doing any shake, recoil, or following. Set a camera's `pos` (`x` and `y`) to move it around, and call functions on it to make it do other stuff.
 
 ## Constructor
 
@@ -47,10 +55,6 @@ _PARAMETERS_
 
 _RETURNS_
 * __t__ <kbd>table</kbd> - The camera object table.
-
-## Basic Usage
-
-Use `apply_transform()` and `reset_transform()` to push and pop a camera's view transform from Löve's rendering transform stack. Call `M.window_resized()` in `love.resize()` so your cameras zoom correctly when the window changes. Make sure to call `M.update()` in `love.update()` (or update cameras one-by-one if you want) if you are doing any shake, recoil, or following.
 
 ## Update Functions
 
@@ -75,7 +79,7 @@ _PARAMETERS_
 
 
 ## Shortcut to Current Camera
-All of the following camera functions, except `update` and `activate`, can be used as module functions, which will call them on the current active camera. This way, you generally don't need to keep track of camera object references and which one is active, except if you want to switch between multiple cameras or only update certain ones, etc. For example:
+All of the following camera functions, except `update`(see above) and `activate`, can be used as module functions, which will call them on the current active camera. This way, you generally don't need to keep track of camera object references and which one is active, except when you want to switch between multiple cameras. For example:
 
 ```lua
 local Camera = require "lib.lovercam"
@@ -89,6 +93,7 @@ function love.draw()
 	-- draw GUI stuff
 end
 ```
+Of course, if you want more control, you are free to call functions on specific camera objects that you choose.
 
 ## Camera Functions
 
@@ -145,11 +150,22 @@ _PARAMETERS_
 * __z__ <kbd>number</kbd> - The percent of the current zoom value to add or subtract.
 
 ### cam:shake(dist, duration, [falloff])
-Adds a shake to the camera. The shake will last for `duration` seconds, randomly offsetting the camera's position every frame by a maximum distance of +/-`dist`. The shake effect will falloff to zero over its duration. By default it uses linear falloff. For each shake you can optionally specify the fallof function, as "linear" or "quadratic", or you can change the default by setting `M.default_shake_falloff`.
+Adds a shake to the camera. The shake will last for `duration` seconds, randomly offsetting the camera's position every frame by a maximum distance of +/-`dist`, and optionally rotating it as well. The shake effect will falloff to zero over its duration. By default it uses linear falloff. For each shake you can optionally specify the fallof function, as "linear" or "quadratic", or you can change the default by setting `M.default_shake_falloff`.
+
+Use `M.shake_rot_mult` to globally control how strong the rotational shake effect is (in +/= radians / `dist`). It defaults to `0.001`. Set it to zero to disable rotational shake.
 
 _PARAMETERS_
 * __dist__ <kbd>number</kbd> - The "intensity" of the shake. The length of the maximum offset it may apply.
 * __duration__ <kbd>number</kbd> - How long the shake will last, in seconds.
+* __falloff__ <kbd>string</kbd> - _optional_ - The falloff type for the shake to use. Can be either "linear" or "quadratic". Defaults to "linear" (or `M.default_shake_falloff`).
+
+### cam:perlin_shake(dist, duration, [freq], [falloff])
+Adds a shake to the camera that will use Perlin noise rather than normal randomness to generate the shake position (and rotation). This gives two benefits: 1) the shake will look correct if the game is run in slow-motion, and 2) you can get a slightly wider variety of effects by varying the frequency parameter. Set `M.default_shake_freq` to change the default frequency, or specify a custom value for each shake.
+
+_PARAMETERS_
+* __dist__ <kbd>number</kbd> - The "intensity" of the shake. The length of the maximum offset it may apply.
+* __duration__ <kbd>number</kbd> - How long the shake will last, in seconds.
+* __freq__ <kbd>number</kbd> - _optional_ - The frequency of the shake. This defaults to `8`, which will look pretty similar to a regular shake. You can set it lower to get a slower, gentler shake, like a handheld camera effect.
 * __falloff__ <kbd>string</kbd> - _optional_ - The falloff type for the shake to use. Can be either "linear" or "quadratic". Defaults to "linear" (or `M.default_shake_falloff`).
 
 ### cam:recoil(vec, duration, [falloff])
