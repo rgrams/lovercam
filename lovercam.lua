@@ -124,16 +124,16 @@ end
 
 function M.window_resized(w, h) -- call once on module and it updates all cameras
 	for i, self in ipairs(cameras) do
-		self.zoom = get_zoom_for_new_window(self.zoom, self.scale_mode, self.win_x, self.win_y, w, h)
-		self.win_x = w;  self.win_y = h
-		self.half_win_x = self.win_x / 2;  self.half_win_y = self.win_y / 2
-		if self.aspect_ratio then
+		local vp_w, vp_h = self.vp.w, self.vp.h -- save last values
+		if self.aspect_ratio then -- Must enforce fixed aspect ratio before figuring zoom.
 			self.vp.x, self.vp.y, self.vp.w, self.vp.h = get_aspect_rect_in_win(self.aspect_ratio, w, h)
-			self.vp.w2 = self.vp.w/2;  self.vp.h2 = self.vp.h/2
 		else
 			self.vp.x, self.vp.y, self.vp.w, self.vp.h = 0, 0, w, h
-			self.vp.w2 = self.half_win_x;  self.vp.h2 = self.half_win_y
 		end
+		self.vp.w2 = self.vp.w/2;  self.vp.h2 = self.vp.h/2
+		self.zoom = get_zoom_for_new_window(self.zoom, self.scale_mode, vp_w, vp_h, self.vp.w, self.vp.h)
+		self.win_x = w;  self.win_y = h
+		self.half_win_x = w / 2;  self.half_win_y = h / 2
 	end
 end
 
@@ -210,7 +210,7 @@ end
 local function apply_transform(self)
 	-- save previous transform
 	love.graphics.push()
-	-- center view on camera - offset by half window res
+	-- center view on camera - offset by viewport offset + half viewport
 	love.graphics.translate(self.vp.x + self.vp.w2, self.vp.y + self.vp.h2)
 	-- view rot and translate are negative because we're really transforming the world
 	love.graphics.rotate(-self.angle - self.shake_a)
