@@ -241,7 +241,7 @@ local function world_to_screen(self, x, y, delta)
 	if not delta then x = x - self.pos.x;  y = y - self.pos.y end
 	x, y = rotate(x, y, -self.angle)
 	x, y = x*self.zoom, y*self.zoom
-	if not delta then x = x + self.half_win_x;  y = y + self.half_win_y end
+	if not delta then x = x + self.vp.x + self.vp.w2;  y = y + self.vp.y + self.vp.h2 end
 	return x, y
 end
 
