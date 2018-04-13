@@ -8,6 +8,7 @@ M.default_recoil_falloff = "quadratic"
 M.shake_rot_mult = 0.001
 M.default_shake_freq = 10
 M.default_follow_lerp_speed = 3
+M.viewport_align = { x = 0.5, y = 0.5 }
 
 -- localize stuff
 local min = math.min
@@ -61,7 +62,8 @@ end
 local function get_aspect_rect_in_win(aspect_ratio, win_x, win_y)
 	local s = math.min(win_x/aspect_ratio, win_y)
 	local w, h = s*aspect_ratio, s
-	local x, y = (win_x - w)/2, (win_y - h)/2
+	local x = (win_x - w) * M.viewport_align.x
+	local y = (win_y - h) * M.viewport_align.y
 	return x, y, w, h
 end
 
@@ -127,8 +129,10 @@ function M.window_resized(w, h) -- call once on module and it updates all camera
 		self.half_win_x = self.win_x / 2;  self.half_win_y = self.win_y / 2
 		if self.aspect_ratio then
 			self.vp.x, self.vp.y, self.vp.w, self.vp.h = get_aspect_rect_in_win(self.aspect_ratio, w, h)
+			self.vp.w2 = self.vp.w/2;  self.vp.h2 = self.vp.h/2
 		else
 			self.vp.x, self.vp.y, self.vp.w, self.vp.h = 0, 0, w, h
+			self.vp.w2 = self.half_win_x;  self.vp.h2 = self.half_win_y
 		end
 	end
 end
@@ -207,7 +211,7 @@ local function apply_transform(self)
 	-- save previous transform
 	love.graphics.push()
 	-- center view on camera - offset by half window res
-	love.graphics.translate(self.half_win_x, self.half_win_y)
+	love.graphics.translate(self.vp.x + self.vp.w2, self.vp.y + self.vp.h2)
 	-- view rot and translate are negative because we're really transforming the world
 	love.graphics.rotate(-self.angle - self.shake_a)
 	love.graphics.scale(self.zoom, self.zoom)
@@ -428,8 +432,10 @@ function M.new(x, y, angle, zoom_or_area, scale_mode, fixed_aspect_ratio, inacti
 	local vp = {}
 	if fixed_aspect_ratio then
 		vp.x, vp.y, vp.w, vp.h = get_aspect_rect_in_win(n.aspect_ratio, win_x, win_y)
+		vp.w2 = vp.w/2;  vp.h2 = vp.h/2
 	else
 		vp.x, vp.y, vp.w, vp.h = 0, 0, win_x, win_y
+		vp.w2 = n.half_win_x;  vp.h2 = n.half_win_y
 	end
 	n.vp = vp
 
