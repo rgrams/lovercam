@@ -74,7 +74,7 @@ local function get_zoom_or_area(zoom_area)
 	elseif t == "number" then
 		return zoom_area -- if number
 	else
-		x, y = is_vec(zoom_area)
+		local x, y = is_vec(zoom_area)
 		if x and y then
 			return x, y -- if vec
 		end
